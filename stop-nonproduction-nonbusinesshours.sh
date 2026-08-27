@@ -14,7 +14,7 @@ TIME_DISPLAY=$(TZ="Asia/Kolkata" date "+%I:%M %p")
 TIME=$(TZ="Asia/Kolkata" date +%H%M)
 
 # 8:00 PM to 7:30 AM IST
-if [ "$TIME" -ge 1700 ] || [ "$TIME" -lt 0730 ]; then
+if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
 
     {
         echo "AWS Resource Scheduler Execution Log"
