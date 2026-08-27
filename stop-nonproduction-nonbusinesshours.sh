@@ -72,7 +72,7 @@ if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
 
     if command -v mail &> /dev/null; then
         # Sends the text contents of LOG_FILE with the specified subject
-        mail -s "$SUBJECT" "$EMAIL_TO" < "$LOG_FILE"
+        mail -r "DevOps Team <xyz@gmail.com>" -s "$SUBJECT" "$EMAIL_TO" < "$LOG_FILE"
     else
         echo "Error: The 'mail' command was not found on this system." >> "$LOG_FILE"
     fi
