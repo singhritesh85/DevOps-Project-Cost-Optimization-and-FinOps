@@ -82,14 +82,15 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
     fi
 
     # ====================================================
-    # 1. HANDLE AZURE VIRTUAL MACHINES (DYNAMIC V1/V2 & MULTI-DISTRO BACKUP)
+    # 1. HANDLE AZURE VIRTUAL MACHINES (DYNAMIC REGION MATCHING)
     # ====================================================
-    VM_DATA=$(az vm list -d --query "[?tags.Environment=='non-prod' && powerState=='VM running'].[id, name, resourceGroup]" --output tsv 2>> "$LOG_FILE")
+    VM_DATA=$(az vm list -d --query "[?tags.Environment=='non-prod' && powerState=='VM running'].[id, name, resourceGroup, location]" --output tsv 2>> "$LOG_FILE")
 
     if [ -n "$VM_DATA" ]; then
-        echo "$VM_DATA" | while read -r VM_ID VM_NAME RESOURCE_GROUP; do
+        echo "$VM_DATA" | while read -r VM_ID VM_NAME RESOURCE_GROUP VM_LOCATION; do
             [ -z "$VM_ID" ] && continue
             [ -z "$VM_NAME" ] || [ "$VM_NAME" = "None" ] && VM_NAME="Unnamed"
+            [ -z "$VM_LOCATION" ] && VM_LOCATION="$GALLERY_LOCATION" # Fallback if empty
 
             {
                 echo ""
@@ -97,6 +98,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                 echo "Virtual Machine Backup"
                 echo "VM Name       : $VM_NAME"
                 echo "Resource Group: $RESOURCE_GROUP"
+                echo "VM Location   : $VM_LOCATION"
                 echo "------------------------------------------------------"
             } >> "$LOG_FILE"
 
@@ -113,7 +115,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                 HYPERV_GEN=$(az vm show --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --query "hyperVGeneration" --output tsv 2>> "$LOG_FILE")
             fi
             if [ -z "$HYPERV_GEN" ] || [ "$HYPERV_GEN" = "None" ]; then
-                HYPERV_GEN="V2"  # Default modern VMs to V2 instead of V1
+                HYPERV_GEN="V2"
             fi
 
             # Check for Marketplace Purchase Plans (AlmaLinux, RHEL, etc.)
@@ -121,7 +123,6 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
             PLAN_PROD=$(az vm show --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --query "plan.product" --output tsv 2>> "$LOG_FILE")
             PLAN_NAME=$(az vm show --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --query "plan.name" --output tsv 2>> "$LOG_FILE")
 
-            # Create clean, unique image definition name based on offer and SKU to avoid conflicts
             CLEAN_OFFER=$(echo "$OFFER" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
             CLEAN_SKU=$(echo "$SKU" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g')
             IMAGE_DEF_NAME="${CLEAN_OFFER}-${CLEAN_SKU}-def"
@@ -129,14 +130,14 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
             echo "Detected Profile -> Pub: $PUB | Offer: $OFFER | SKU: $SKU | Gen: $HYPERV_GEN" >> "$LOG_FILE"
             echo "Using Image Definition Name: $IMAGE_DEF_NAME" >> "$LOG_FILE"
 
-            # Ensure Image Definition exists inside the gallery with correct dynamic attributes
+            # Ensure Image Definition exists inside the gallery (created in the VM's matching region)
             if ! az sig image-definition show --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --output none &> /dev/null; then
-                echo "Creating Image Definition '$IMAGE_DEF_NAME' in location '$GALLERY_LOCATION'..." >> "$LOG_FILE"
+                echo "Creating Image Definition '$IMAGE_DEF_NAME' in location '$VM_LOCATION'..." >> "$LOG_FILE"
 
                 if [ -n "$PLAN_PUB" ] && [ "$PLAN_PUB" != "None" ]; then
-                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$GALLERY_LOCATION" --plan-publisher "$PLAN_PUB" --plan-product "$PLAN_PROD" --plan-name "$PLAN_NAME" --output none >> "$LOG_FILE" 2>&1
+                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$VM_LOCATION" --plan-publisher "$PLAN_PUB" --plan-product "$PLAN_PROD" --plan-name "$PLAN_NAME" --output none >> "$LOG_FILE" 2>&1
                 else
-                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$GALLERY_LOCATION" --output none >> "$LOG_FILE" 2>&1
+                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$VM_LOCATION" --output none >> "$LOG_FILE" 2>&1
                 fi
             fi
 
@@ -147,9 +148,9 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
             echo "Waiting for VM $VM_NAME to fully deallocate..." >> "$LOG_FILE"
             az vm wait --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --custom "powerState == 'VM deallocated'" --timeout 300 2>> "$LOG_FILE"
 
-            # Create Specialized Azure Compute Gallery Image Version
+            # Create Specialized Azure Compute Gallery Image Version in the corresponding VM region
             echo "Creating Specialized Image Version '$IMAGE_VERSION' for VM: $VM_NAME..." >> "$LOG_FILE"
-            az sig image-version create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --gallery-image-version "$IMAGE_VERSION" --virtual-machine "$VM_ID" --output none >> "$LOG_FILE" 2>&1
+            az sig image-version create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --gallery-image-version "$IMAGE_VERSION" --virtual-machine "$VM_ID" --location "$VM_LOCATION" --output none >> "$LOG_FILE" 2>&1
 
             if [ $? -ne 0 ]; then
                 echo "CRITICAL ERROR: Failed to create Compute Gallery Image Version for $VM_NAME. SKIPPING DELETION." >> "$LOG_FILE"
@@ -172,7 +173,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
     fi
 
     # ====================================================
-    # 2. HANDLE AZURE DATABASE FOR MYSQL FLEXIBLE SERVERS (MYDUMPER & STORAGE ACCOUNT)
+    # 2. HANDLE AZURE DATABASE FOR MYSQL FLEXIBLE SERVERS (GLOBAL SEARCH ACROSS ALL REGIONS)
     # ====================================================
     MYSQL_DATA=$(az mysql flexible-server list --query "[?tags.Environment=='non-prod' && state=='Ready'].[name, resourceGroup]" --output tsv 2>> "$LOG_FILE")
 
