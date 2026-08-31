@@ -14,7 +14,7 @@ GALLERY_NAME="NonProdSharedGallery"     ### Name of your Azure Compute Gallery
 GALLERY_LOCATION="eastus"               ### Region for the Compute Group/Gallery
 OS_TYPE="Linux"
 
-# Azure Backup Vault Configuration
+# Azure Backup Vault Configuration (Retained for reference)
 BACKUP_VAULT_RG="rg-shared-infrastructure"
 BACKUP_VAULT_NAME="NonProdBackupVault"
 BACKUP_LOCATION="eastus"
@@ -46,7 +46,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
         echo "======================================================"
         echo "Execution Time : $(date)"
         echo "IST Time       : $TIME_DISPLAY"
-        echo "Action         : Create Dynamic Gallery Image / Native MySQL Backup & Delete"
+        echo "Action         : Create Dynamic Gallery Image / Mydumper MySQL Backup & Delete"
         echo "======================================================"
         echo ""
     } >> "$LOG_FILE"
@@ -62,9 +62,9 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
     # Ensure Resource Groups exist (Create if missing)
     # ========================================================
     echo "Checking if Resource Group '$GALLERY_RG' exists..." >> "$LOG_FILE"
-    if ! az group show --name "$GALLERY_RG" &> /dev/null; then
+    if ! az group show --name "$GALLERY_RG" --output none &> /dev/null; then
         echo "Resource Group '$GALLERY_RG' does not exist. Creating in location '$GALLERY_LOCATION'..." >> "$LOG_FILE"
-        az group create --name "$GALLERY_RG" --location "$GALLERY_LOCATION" >> "$LOG_FILE" 2>&1
+        az group create --name "$GALLERY_RG" --location "$GALLERY_LOCATION" --output none >> "$LOG_FILE" 2>&1
     else
         echo "Resource Group '$GALLERY_RG' already exists." >> "$LOG_FILE"
     fi
@@ -74,9 +74,9 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
     # Ensure Azure Compute Gallery exists (Create once if missing)
     # ========================================================
     echo "Checking if Azure Compute Gallery '$GALLERY_NAME' exists..." >> "$LOG_FILE"
-    if ! az sig show --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" &> /dev/null; then
+    if ! az sig show --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --output none &> /dev/null; then
         echo "Gallery does not exist. Creating Compute Gallery '$GALLERY_NAME' in location '$GALLERY_LOCATION'..." >> "$LOG_FILE"
-        az sig create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --location "$GALLERY_LOCATION" >> "$LOG_FILE" 2>&1
+        az sig create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --location "$GALLERY_LOCATION" --output none >> "$LOG_FILE" 2>&1
     else
         echo "Compute Gallery '$GALLERY_NAME' already exists." >> "$LOG_FILE"
     fi
@@ -130,26 +130,26 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
             echo "Using Image Definition Name: $IMAGE_DEF_NAME" >> "$LOG_FILE"
 
             # Ensure Image Definition exists inside the gallery with correct dynamic attributes
-            if ! az sig image-definition show --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" &> /dev/null; then
+            if ! az sig image-definition show --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --output none &> /dev/null; then
                 echo "Creating Image Definition '$IMAGE_DEF_NAME' in location '$GALLERY_LOCATION'..." >> "$LOG_FILE"
 
                 if [ -n "$PLAN_PUB" ] && [ "$PLAN_PUB" != "None" ]; then
-                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$GALLERY_LOCATION" --plan-publisher "$PLAN_PUB" --plan-product "$PLAN_PROD" --plan-name "$PLAN_NAME" >> "$LOG_FILE" 2>&1
+                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$GALLERY_LOCATION" --plan-publisher "$PLAN_PUB" --plan-product "$PLAN_PROD" --plan-name "$PLAN_NAME" --output none >> "$LOG_FILE" 2>&1
                 else
-                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$GALLERY_LOCATION" >> "$LOG_FILE" 2>&1
+                    az sig image-definition create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --publisher "$PUB" --offer "$OFFER" --sku "$SKU" --os-type "$OS_TYPE" --os-state "Specialized" --hyper-v-generation "$HYPERV_GEN" --location "$GALLERY_LOCATION" --output none >> "$LOG_FILE" 2>&1
                 fi
             fi
 
             # Deallocate VM for backup safely
             echo "Deallocating VM: $VM_NAME..." >> "$LOG_FILE"
-            az vm deallocate --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --no-wait >> "$LOG_FILE" 2>&1
+            az vm deallocate --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --no-wait --output none >> "$LOG_FILE" 2>&1
 
             echo "Waiting for VM $VM_NAME to fully deallocate..." >> "$LOG_FILE"
             az vm wait --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --custom "powerState == 'VM deallocated'" --timeout 300 2>> "$LOG_FILE"
 
             # Create Specialized Azure Compute Gallery Image Version
             echo "Creating Specialized Image Version '$IMAGE_VERSION' for VM: $VM_NAME..." >> "$LOG_FILE"
-            az sig image-version create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --gallery-image-version "$IMAGE_VERSION" --virtual-machine "$VM_ID" >> "$LOG_FILE" 2>&1
+            az sig image-version create --resource-group "$GALLERY_RG" --gallery-name "$GALLERY_NAME" --gallery-image-definition "$IMAGE_DEF_NAME" --gallery-image-version "$IMAGE_VERSION" --virtual-machine "$VM_ID" --output none >> "$LOG_FILE" 2>&1
 
             if [ $? -ne 0 ]; then
                 echo "CRITICAL ERROR: Failed to create Compute Gallery Image Version for $VM_NAME. SKIPPING DELETION." >> "$LOG_FILE"
@@ -160,7 +160,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
 
             # Delete VM
             echo "Deleting Azure VM: $VM_NAME" >> "$LOG_FILE"
-            az vm delete --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --yes --force-deletion > /dev/null 2>> "$LOG_FILE"
+            az vm delete --resource-group "$RESOURCE_GROUP" --name "$VM_NAME" --yes --force-deletion --output none >> "$LOG_FILE" 2>&1
             if [ $? -eq 0 ]; then
                 echo "SUCCESS: VM $VM_NAME deleted." >> "$LOG_FILE"
             else
@@ -179,22 +179,22 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
     if [ -n "$MYSQL_DATA" ]; then
 
         # Ensure Storage Resource Group exists
-        if ! az group show --name "$STORAGE_RG" &> /dev/null; then
+        if ! az group show --name "$STORAGE_RG" --output none &> /dev/null; then
             echo "Creating Storage Resource Group '$STORAGE_RG'..." >> "$LOG_FILE"
-            az group create --name "$STORAGE_RG" --location "$STORAGE_LOCATION" >> "$LOG_FILE" 2>&1
+            az group create --name "$STORAGE_RG" --location "$STORAGE_LOCATION" --output none >> "$LOG_FILE" 2>&1
         fi
 
         # Ensure Azure Storage Account exists
-        if ! az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$STORAGE_RG" &> /dev/null; then
+        if ! az storage account show --name "$STORAGE_ACCOUNT_NAME" --resource-group "$STORAGE_RG" --output none &> /dev/null; then
             echo "Creating Storage Account '$STORAGE_ACCOUNT_NAME'..." >> "$LOG_FILE"
-            az storage account create --name "$STORAGE_ACCOUNT_NAME" --resource-group "$STORAGE_RG" --location "$STORAGE_LOCATION" --sku Standard_LRS --kind StorageV2 >> "$LOG_FILE" 2>&1
+            az storage account create --name "$STORAGE_ACCOUNT_NAME" --resource-group "$STORAGE_RG" --location "$STORAGE_LOCATION" --sku Standard_LRS --kind StorageV2 --output none >> "$LOG_FILE" 2>&1
         fi
 
-        # Retrieve Storage Account Connection String or Key
+        # Retrieve Storage Account Connection Key
         STORAGE_KEY=$(az storage account keys list --resource-group "$STORAGE_RG" --account-name "$STORAGE_ACCOUNT_NAME" --query "[0].value" --output tsv 2>> "$LOG_FILE")
 
         # Ensure Storage Container exists
-        az storage container create --name "$STORAGE_CONTAINER_NAME" --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$STORAGE_KEY" --auth-mode key --public-access off >> "$LOG_FILE" 2>&1
+        az storage container create --name "$STORAGE_CONTAINER_NAME" --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$STORAGE_KEY" --auth-mode key --public-access off --output none >> "$LOG_FILE" 2>&1
 
         echo "$MYSQL_DATA" | while read -r MYSQL_NAME RESOURCE_GROUP; do
             [ -z "$MYSQL_NAME" ] && continue
@@ -208,8 +208,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                 echo "------------------------------------------------------"
             } >> "$LOG_FILE"
 
-            # Fetch MySQL Admin Username, FQDN, and retrieve password securely or prompt/env
-            # Assuming admin username is retrieved from Azure, but password needs to be available via env var (e.g., MYSQL_PASSWORD)
+            # Fetch MySQL Admin Username and FQDN
             MYSQL_FQDN=$(az mysql flexible-server show --resource-group "$RESOURCE_GROUP" --name "$MYSQL_NAME" --query "fullyQualifiedDomainName" --output tsv 2>> "$LOG_FILE")
             MYSQL_USER=$(az mysql flexible-server show --resource-group "$RESOURCE_GROUP" --name "$MYSQL_NAME" --query "administratorLogin" --output tsv 2>> "$LOG_FILE")
 
@@ -224,7 +223,6 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                 echo "Installing mydumper on AlmaLinux 8 via official RPM..." >> "$LOG_FILE"
                 sudo yum install -y epel-release wget glib2 pcre zlib zstd >> "$LOG_FILE" 2>&1
 
-                # Download and install the EL8 RPM directly from MyDumper GitHub Releases
                 MYDUMPER_RPM="mydumper-1.0.5-1.el8.x86_64.rpm"
                 wget -q "https://github.com/mydumper/mydumper/releases/download/v1.0.5-1/$MYDUMPER_RPM" -O "/tmp/$MYDUMPER_RPM" >> "$LOG_FILE" 2>&1
                 sudo yum localinstall -y "/tmp/$MYDUMPER_RPM" >> "$LOG_FILE" 2>&1
@@ -235,7 +233,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
             DYNAMIC_PASSWORD="P@ssw0rd$(date +%s)"
 
             echo "Resetting admin password for $MYSQL_NAME..." >> "$LOG_FILE"
-            az mysql flexible-server update --resource-group "$RESOURCE_GROUP" --name "$MYSQL_NAME" --admin-password "$DYNAMIC_PASSWORD" >> "$LOG_FILE" 2>&1
+            az mysql flexible-server update --resource-group "$RESOURCE_GROUP" --name "$MYSQL_NAME" --admin-password "$DYNAMIC_PASSWORD" --output none >> "$LOG_FILE" 2>&1
 
             # Take backup using mydumper
             mydumper -h "$MYSQL_FQDN" -u "$MYSQL_USER" -p "$DYNAMIC_PASSWORD" -o "$BACKUP_DIR" --compress --skip-ddl-locks --trx-tables=0 --regex '^(?!(mysql|information_schema|performance_schema|sys))' >> "$LOG_FILE" 2>&1
@@ -246,7 +244,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                 tar -zcvf "$TARBALL" -C "$BACKUP_DIR" . >> "$LOG_FILE" 2>&1
 
                 echo "Uploading backup to Azure Storage Container '$STORAGE_CONTAINER_NAME'..." >> "$LOG_FILE"
-                az storage blob upload --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$STORAGE_KEY" --container-name "$STORAGE_CONTAINER_NAME" --file "$TARBALL" --name "$(basename "$TARBALL")" >> "$LOG_FILE" 2>&1
+                az storage blob upload --account-name "$STORAGE_ACCOUNT_NAME" --account-key "$STORAGE_KEY" --container-name "$STORAGE_CONTAINER_NAME" --file "$TARBALL" --name "$(basename "$TARBALL")" --output none >> "$LOG_FILE" 2>&1
 
                 if [ $? -eq 0 ]; then
                     echo "SUCCESS: Backup uploaded successfully to Azure Storage." >> "$LOG_FILE"
@@ -264,7 +262,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
 
             # Delete MySQL Flexible Server safely
             echo "Deleting MySQL Flexible Server: $MYSQL_NAME" >> "$LOG_FILE"
-            if az mysql flexible-server delete --resource-group "$RESOURCE_GROUP" --name "$MYSQL_NAME" --yes >> "$LOG_FILE" 2>&1; then
+            if az mysql flexible-server delete --resource-group "$RESOURCE_GROUP" --name "$MYSQL_NAME" --yes --output none >> "$LOG_FILE" 2>&1; then
                 echo "SUCCESS: MySQL server $MYSQL_NAME deleted." >> "$LOG_FILE"
             else
                 echo "ERROR: Failed to delete MySQL server $MYSQL_NAME." >> "$LOG_FILE"
