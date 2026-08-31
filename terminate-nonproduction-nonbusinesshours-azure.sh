@@ -155,6 +155,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                         [ -z "$NIC_ID" ] && continue
                         NIC_NAME=$(basename "$NIC_ID")
 
+                        # Check for Public IP associated via IP Configuration
                         PIP_ID=$(az network nic show --resource-group "$RESOURCE_GROUP" --name "$NIC_NAME" --query "ipConfigurations[0].publicIpAddress.id" --output tsv 2>> "$LOG_FILE")
                         NSG_ID=$(az network nic show --resource-group "$RESOURCE_GROUP" --name "$NIC_NAME" --query "networkSecurityGroup.id" --output tsv 2>> "$LOG_FILE")
 
@@ -163,7 +164,7 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
 
                         if [ -n "$PIP_ID" ] && [ "$PIP_ID" != "None" ]; then
                             PIP_NAME=$(basename "$PIP_ID")
-                            echo "Deleting orphaned Public IP: $PIP_NAME" >> "$LOG_FILE"
+                            echo "Deleting associated Public IP: $PIP_NAME" >> "$LOG_FILE"
                             az network public-ip delete --resource-group "$RESOURCE_GROUP" --name "$PIP_NAME" --output none >> "$LOG_FILE" 2>&1
                         fi
 
@@ -173,6 +174,15 @@ if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
                             az network nsg delete --resource-group "$RESOURCE_GROUP" --name "$NSG_NAME" --output none >> "$LOG_FILE" 2>&1
                         fi
                     done
+
+                    # Additional sweep for any orphaned Public IPs in the same resource group matching non-prod tags or naming conventions if needed
+                    ORPHANED_PIPS=$(az network public-ip list --resource-group "$RESOURCE_GROUP" --query "[?ipConfiguration == null].name" --output tsv 2>> "$LOG_FILE")
+                    for OP_PIP in $ORPHANED_PIPS; do
+                        [ -z "$OP_PIP" ] && continue
+                        echo "Deleting orphaned unattached Public IP: $OP_PIP" >> "$LOG_FILE"
+                        az network public-ip delete --resource-group "$RESOURCE_GROUP" --name "$OP_PIP" --output none >> "$LOG_FILE" 2>&1
+                    done
+
                 else
                     echo "ERROR: Failed to delete VM $VM_NAME." >> "$LOG_FILE"
                 fi
