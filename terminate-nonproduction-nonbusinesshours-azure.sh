@@ -33,7 +33,7 @@ TIME=$(TZ="Asia/Kolkata" date +%H%M)
 # ============================================================
 # Run only between 8:00 PM and 7:30 AM IST
 # ============================================================
-if [ "$TIME" -ge 1300 ] || [ "$TIME" -lt 0730 ]; then
+if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
 
     {
         echo "AZURE TENANT-WIDE NON-PROD BACKUP AND DELETE EXECUTION LOG"
