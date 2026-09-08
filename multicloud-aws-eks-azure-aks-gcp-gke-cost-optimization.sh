@@ -107,8 +107,7 @@ if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
                             echo "   -> Scaling down EKS Node Group: $ng (min: $MIN_SIZE, max: $MAX_SIZE, desired: $DESIRED_SIZE)"
                             jq --arg key "$STATE_KEY" --argjson min "$MIN_SIZE" --argjson max "$MAX_SIZE" --argjson desired "$DESIRED_SIZE" '.[$key] = {"min": $min, "max": $max, "desired": $desired}' "$STATE_FILE" > tmp.$$.json && mv tmp.$$.json "$STATE_FILE"
 
-                            NEW_MAX=$([ "$MAX_SIZE" -gt 0 ] && echo "$MAX_SIZE" || echo "1")
-                            aws eks update-nodegroup-config --cluster-name "$cluster" --nodegroup-name "$ng" --region "$region" --scaling-config minSize=0,maxSize="$NEW_MAX",desiredSize=0 > /dev/null 2>&1
+                            aws eks update-nodegroup-config --cluster-name "$cluster" --nodegroup-name "$ng" --region "$region" --scaling-config minSize=0,maxSize=1,desiredSize=0 > /dev/null 2>&1
                         fi
                     fi
                 done
