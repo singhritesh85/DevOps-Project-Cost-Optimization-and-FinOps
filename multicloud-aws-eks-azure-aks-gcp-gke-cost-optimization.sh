@@ -154,7 +154,7 @@ if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
                         if [ "$INITIAL_COUNT" -gt 0 ]; then
                             echo "   -> Resizing GKE Node Pool: $POOL_NAME to 0 nodes (from $INITIAL_COUNT)"
                             
-                            # Save state including autoscaling configurations for restoration
+                            # Save state including autoscaling configurations
                             jq --arg key "$STATE_KEY" --argjson count "$INITIAL_COUNT" --argjson autoscaling "$AUTOSCALING_ENABLED" --argjson min "$MIN_NODES" --argjson max "$MAX_NODES" '.[$key] = {"initialCount": $count, "autoscaling": $autoscaling, "minNodes": $min, "maxNodes": $max}' "$STATE_FILE" > tmp.$$.json && mv tmp.$$.json "$STATE_FILE"
 
                             # If autoscaling is enabled, disable it first
