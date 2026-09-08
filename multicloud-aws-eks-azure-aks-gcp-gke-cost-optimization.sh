@@ -143,17 +143,17 @@ if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
                     echo "$NODE_POOLS" | jq -c '.[]?' | while read -r pool_json; do
                         POOL_NAME=$(echo "$pool_json" | jq -r '.name')
                         INITIAL_COUNT=$(echo "$pool_json" | jq -r '.initialNodeCount')
-                        
+
                         # Check if autoscaling is enabled on this node pool
                         AUTOSCALING_ENABLED=$(echo "$pool_json" | jq -r '.autoscaling.enabled // false')
                         MIN_NODES=$(echo "$pool_json" | jq -r '.autoscaling.minNodeCount // 0')
                         MAX_NODES=$(echo "$pool_json" | jq -r '.autoscaling.maxNodeCount // 0')
-                        
+
                         STATE_KEY="gcp/gke/$project/$CLUSTER_NAME/$POOL_NAME"
 
                         if [ "$INITIAL_COUNT" -gt 0 ]; then
                             echo "   -> Resizing GKE Node Pool: $POOL_NAME to 0 nodes (from $INITIAL_COUNT)"
-                            
+
                             # Save state including autoscaling configurations
                             jq --arg key "$STATE_KEY" --argjson count "$INITIAL_COUNT" --argjson autoscaling "$AUTOSCALING_ENABLED" --argjson min "$MIN_NODES" --argjson max "$MAX_NODES" '.[$key] = {"initialCount": $count, "autoscaling": $autoscaling, "minNodes": $min, "maxNodes": $max}' "$STATE_FILE" > tmp.$$.json && mv tmp.$$.json "$STATE_FILE"
 
@@ -174,6 +174,10 @@ if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
             echo "   -> No GKE cluster found with the label environment=non-prod"
         fi
     fi
+
+else
+    echo "IST time is $TIME_DISPLAY. Outside of designated non-prod optimization window - nothing to do."
+fi
 
 # ==============================================================================
 # EMAIL NOTIFICATION DISPATCH
