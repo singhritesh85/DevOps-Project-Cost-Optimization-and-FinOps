@@ -1,0 +1,89 @@
+# Create a Release Image with Tomcat installed:
+---
+- name: This is a playbook
+  hosts: 127.0.0.1
+  become: yes
+  tasks:
+  - name: Install the java 21 and other packages
+    yum:
+      name:
+      - java-21*
+      - wget
+      - vim
+      - zip
+      - unzip
+      - git
+      state: present
+  - name: Find Java executable
+    shell: readlink -f $(which java)
+    register: java_path
+    changed_when: false
+  - name: Configure JAVA_HOME
+    copy:
+      dest: /etc/profile.d/java.sh
+      owner: root
+      group: root
+      mode: "0644"
+      content: |
+        export JAVA_HOME="{{ java_path.stdout | regex_replace('/bin/java$', '') }}"
+        export PATH="$PATH:$JAVA_HOME/bin"
+  - name: Load JAVA_HOME for current task
+    shell:
+      cmd: source /etc/profile.d/java.sh && echo "JAVA_HOME=$JAVA_HOME"
+      executable: /bin/bash
+    register: java_home_result
+    changed_when: false
+  - name: Check Java version
+    shell: java -version
+    register: java_version
+    changed_when: false
+  - name: Display Java version
+    debug:
+      var: java_version.stderr_lines
+  - name: download the tomcat package from the given link
+    get_url:
+      url: https://archive.apache.org/dist/tomcat/tomcat-10/v10.1.57/bin/apache-tomcat-10.1.57.tar.gz
+      dest: /opt/
+  - name: unarchive the tomcat file
+    unarchive:
+      src: /opt/apache-tomcat-10.1.57.tar.gz
+      dest: /opt/
+  - name: start tomcat on port 80
+    replace:
+      path: /opt/apache-tomcat-10.1.57/conf/server.xml
+      regexp: 'port="8080"'
+      replace: 'port="80"'
+  - name: create tomcat as a service
+    copy:
+      content: |
+        [Unit]
+        Description=Tomcat Service
+        Requires=network.target
+        After=network.target
+        [Service]
+        Type=forking
+        User=root
+        Environment="CATALINA_PID=/opt/apache-tomcat-10.1.57/logs/tomcat.pid"
+        Environment="CATALINA_BASE=/opt/apache-tomcat-10.1.57"
+        Environment="CATALINA_HOME=/opt/apache-tomcat-10.1.57"
+        Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+        ExecStart=/opt/apache-tomcat-10.1.57/bin/startup.sh
+        ExecStop=/opt/apache-tomcat-10.1.57/bin/shutdown.sh
+        Restart=on-abnormal
+        [Install]
+        WantedBy=multi-user.target
+      dest: /etc/systemd/system/tomcat.service
+  - name: reload the SystemD for configurations to be read again
+    systemd:
+      daemon-reload: yes
+  - name: start tomcat and enable
+    systemd:
+      name: tomcat
+      state: started
+      enabled: true
+  - name: To check the status of tomcat service      ### Answer for Question 3
+    shell: systemctl status tomcat
+  - name: Remove Tomcat archive
+    file:
+      path: "/opt/apache-tomcat-10.1.57.tar.gz"
+      state: absent
