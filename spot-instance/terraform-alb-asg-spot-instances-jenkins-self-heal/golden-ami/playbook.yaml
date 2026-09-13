@@ -1,0 +1,57 @@
+# Create a Golden AMI with Tomcat installed:
+---
+- name: This is a playbook
+  hosts: 127.0.0.1
+  become: yes
+  tasks:
+  - name: download the java 21
+    yum: 
+      name: java-21*
+      state: present
+  - name: create directory for tomcat
+    file:
+      path: /opt/apache-tomcat
+      state: directory
+  - name: download the tomcat package from the given link
+    get_url: 
+      url: https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/10.1.57/tomcat-10.1.57.tar.gz
+      dest: /opt/
+  - name: unarchive the tomcat file
+    unarchive:
+      src: /opt/tomcat-10.1.57.tar.gz
+      dest: /opt/
+  - name: start tomcat on port 80
+    replace:
+      path: /opt/apache-tomcat-10.1.57/conf/server.xml
+      regexp: 'port="8080"'
+      replace: 'port="80"'
+  - name: create tomcat as a service
+    copy:
+      content: |
+        [Unit]
+        Description=Tomcat Service
+        Requires=network.target
+        After=network.target
+        [Service]
+        Type=forking
+        User=root
+        Environment="CATALINA_PID=/opt/apache-tomcat-10.1.57/logs/tomcat.pid"
+        Environment="CATALINA_BASE=/opt/apache-tomcat-10.1.57"
+        Environment="CATALINA_HOME=/opt/apache-tomcat-10.1.57"
+        Environment="CATALINA_OPTS=-Xms512M -Xmx1024M -server -XX:+UseParallelGC"
+        ExecStart=/opt/apache-tomcat-10.1.57/bin/startup.sh
+        ExecStop=/opt/apache-tomcat-10.1.57/bin/shutdown.sh
+        Restart=on-abnormal
+        [Install]
+        WantedBy=multi-user.target 
+      dest: /etc/systemd/system/tomcat.service
+  - name: reload the SystemD for configurations to be read again
+    systemd:
+      daemon-reload: yes
+  - name: start tomcat and enable
+    systemd:
+      name: tomcat
+      state: started
+      enabled: true
+  - name: To check the status of tomcat service      ### Answer for Question 3 
+    shell: systemctl status tomcat

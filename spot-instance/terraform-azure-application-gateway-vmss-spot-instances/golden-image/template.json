@@ -1,0 +1,65 @@
+{
+  "variables": {
+    "tenant_id": "{{env `TENANT_ID`}}",
+    "subscription_id": "{{env `SUBSCRIPTION_ID`}}",
+    "client_id": "{{env `CLIENT_ID`}}",
+    "client_secret": "{{env `CLIENT_SECRET`}}"
+  },
+  "builders": [{
+    "type": "azure-arm",
+
+    "tenant_id": "{{user `tenant_id`}}",
+    "subscription_id": "{{user `subscription_id`}}",
+    "client_id": "{{user `client_id`}}",
+    "client_secret": "{{user `client_secret`}}",
+    "managed_image_resource_group_name": "ritesh",
+    "managed_image_name": "GoldenAMI-{{timestamp}}",
+
+    "os_type": "Linux",
+    "image_publisher": "almalinux",
+    "image_offer": "almalinux-x86_64",
+    "image_sku": "9-gen2",
+
+    "azure_tags": {
+        "dept": "DevOps",
+        "Environment": "Staging",
+        "Description": "packer-tomcat-{{timestamp}}"
+    },
+
+    "location": "East US 2",
+    "vm_size": "Standard_D2ds_v4",
+    "spot": {
+      "eviction_policy": "Delete",
+      "max_price": -1
+    },
+
+    "shared_image_gallery_destination": {
+       "resource_group": "ritesh",
+       "gallery_name": "nhimagegallery",
+       "image_name": "demo",
+       "image_version": "1.0.0"
+    }
+  }],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sudo yum install -y epel-release",
+        "sudo yum install -y ansible"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "playbook.yaml" ,
+      "pause_before": "100s"
+    },
+    {
+    "type": "shell",
+    "inline": [
+      "echo 'Deprovisioning Azure Linux Agent...'",
+      "/usr/sbin/waagent -force -deprovision+user",
+      "sync"
+    ],
+    "execute_command": "sudo -E bash '{{.Path}}'"
+  }]
+}
