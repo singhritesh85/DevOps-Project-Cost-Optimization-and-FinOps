@@ -180,7 +180,7 @@ if [ "$TIME" -ge 2000 ] || [ "$TIME" -lt 0730 ]; then
                                     FOUND_NON_PROD_MIG=true
                                     echo "  -> Scaling down non-prod MIG: $MIG_NAME ($LOCATION_FLAG $LOC_VAL) using template: $TEMPLATE_NAME to 0" >> "$LOG_FILE"
 
-                                    # Update autoscaler minimum replicas to 0 (keeping autoscaling active, max preserved)
+                                    # Update autoscaler minimum and maximum replicas to 0
                                     gcloud compute instance-groups managed set-autoscaling "$MIG_NAME" --project="$PROJECT_ID" "$LOCATION_FLAG"="$LOC_VAL" --min-num-replicas=0 --max-num-replicas=0 --mode=on --quiet > /dev/null 2>&1
 
                                     # Resize MIG to 0 instances
