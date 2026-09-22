@@ -1,0 +1,99 @@
+apiVersion: karpenter.azure.com/v1beta1
+kind: AKSNodeClass
+metadata:
+  name: dynamic-infra-class
+spec:
+  # Links Karpenter directly into your explicit Virtual Network configuration
+  vnetSubnetID: "<YOUR_SUBNET_RESOURCE_ID>"
+---
+# 1. THE SYSTEM SURGE POOL (Scales system components dynamically)
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: system-surge-karpenter
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 30s
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.azure.com
+        kind: AKSNodeClass
+        name: dynamic-infra-class
+      # Force system nodes to inherit the critical system parameters
+      startupTaints:
+        - key: CriticalAddonsOnly
+          value: "true"
+          effect: NoSchedule
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["arm64"] # Keeps the system extensions on Cobalt ARM64
+        - key: kubernetes.io/os
+          operator: In
+          values: ["linux"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"] # System tasks must NEVER use Spot
+        - key: karpenter.azure.com/sku-name
+          operator: In
+          values: ["Standard_D4ps_v6", "Standard_D2ps_v6", "Standard_D8ps_v6"]
+---
+# 2. USERPOOL AGENT - ON-DEMAND COBALT POOL
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: userpool-ondemand-cobalt
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 30s
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.azure.com
+        kind: AKSNodeClass
+        name: dynamic-infra-class
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["arm64"] # Matches your workload requirement
+        - key: kubernetes.io/os
+          operator: In
+          values: ["linux"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["on-demand"]
+        - key: karpenter.azure.com/sku-name
+          operator: In
+          values: ["Standard_D4ps_v6", "Standard_D2ps_v6", "Standard_D8ps_v6"]
+---
+# 3. USERPOOL AGENT - SPOT AMD64 POOL
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: userpool-spot-amd64
+spec:
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 30s
+  template:
+    spec:
+      nodeClassRef:
+        group: karpenter.azure.com
+        kind: AKSNodeClass
+        name: dynamic-infra-class
+      requirements:
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["amd64"] # Matches the B4as AMD profile
+        - key: kubernetes.io/os
+          operator: In
+          values: ["linux"]
+        - key: karpenter.sh/capacity-type
+          operator: In
+          values: ["spot"] # Leverages cheaper Azure Spot instances
+        - key: karpenter.azure.com/sku-name
+          operator: In
+          values: ["Standard_B4as_v2", "Standard_B2as_v2", "Standard_B8as_v2"]
