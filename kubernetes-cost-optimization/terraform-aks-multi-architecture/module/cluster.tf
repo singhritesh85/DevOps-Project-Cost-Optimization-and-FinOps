@@ -210,7 +210,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "autoscale_node_pool" {
   kubernetes_cluster_id        = azurerm_kubernetes_cluster.aks_cluster.id
 #  zones                        = [1, 2, 3]
   orchestrator_version = var.kubernetes_version_aks
-  vm_size  = count.index == 0 ? "Standard_D4ps_v6" : "Standard_B4as_v2"
+  vm_size  = count.index == 0 ? "Standard_D4ps_v6" : "Standard_D4as_v5"     ###"Standard_B4as_v2"
   mode                         = "User"          ### You can select between System and User
 # enable_node_public_ip = true             ###  Will be used in Public AKS Cluster.
 #  auto_scaling_enabled = true
