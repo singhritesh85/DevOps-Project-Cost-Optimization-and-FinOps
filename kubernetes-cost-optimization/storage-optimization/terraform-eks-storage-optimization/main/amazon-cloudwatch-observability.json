@@ -1,0 +1,31 @@
+{
+  "agent": {
+    "config": {
+      "logs": {
+        "metrics_collected": {
+          "application_signals": {},
+          "kubernetes": {
+            "enhanced_container_insights": true,
+	    "accelerated_compute_metrics": false
+          }
+        }
+      },
+      "traces": {
+        "traces_collected": {
+          "application_signals": {}
+        }
+      },
+      "containerLogs": {
+        "enabled": false
+      },
+      "manager":{
+        "applicationSignals":{
+          "autoMonitor":{
+            "monitorAllServices":true,
+            "restartPods":false
+          }
+        }
+      }
+    }
+  }
+}
