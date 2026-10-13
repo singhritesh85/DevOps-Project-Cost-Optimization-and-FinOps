@@ -1,0 +1,55 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mogambo
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-0862ff8530f0b39b3
+  directoryPerms: "700"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-claim
+  namespace: mogambo
+spec:
+  accessModes:
+    - ReadWriteMany  
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: efs-app
+  namespace: mogambo
+spec:
+  selector:
+    matchLabels:
+      app: zipper
+  replicas: 6
+  template:
+    metadata:
+      labels:
+        app: zipper
+    spec:
+      containers:
+      - name: app
+        image: quay.io/centos/centos:stream9
+        command: ["/bin/sh"]
+        args: ["-c", "while true; do echo $(date) >> /data/out.txt; sleep 5; done"]
+        volumeMounts:
+        - name: persistent-storage
+          mountPath: /data
+      volumes:
+        - name: persistent-storage
+          persistentVolumeClaim:
+            claimName: efs-claim
