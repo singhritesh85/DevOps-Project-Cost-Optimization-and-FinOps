@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dexter
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: s3-pv
+spec:
+  capacity:
+    storage: 200Gi
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  claimRef:
+    namespace: dexter
+    name: s3-pvc
+  mountOptions:
+    - allow-delete
+    - region us-east-2
+  csi:
+    driver: s3.csi.aws.com
+    volumeHandle: s3-csi-driver-volume
+    volumeAttributes:
+      bucketName: s3bucketeksstorageoptimization
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: s3-pvc
+  namespace: dexter
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ""
+  volumeName: s3-pv
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpd-s3-logging-deployment
+  namespace: dexter
+  labels:
+    app: httpd-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: httpd-app
+  template:
+    metadata:
+      labels:
+        app: httpd-app
+    spec:
+      containers:
+        - name: httpd-container
+          image: httpd:2.4
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mkdir -p /local-logs
+              # Write custom logging rules directly to an extra config file
+              cat << 'EOF' > /usr/local/apache2/conf/extra/httpd-s3-logging.conf
+              CustomLog "|/usr/local/apache2/bin/rotatelogs -l /local-logs/access-%Y-%m-%d.log 86400" combined
+              ErrorLog "|/usr/local/apache2/bin/rotatelogs -l /local-logs/error-%Y-%m-%d.log 86400"
+              EOF
+              # Include the new log config into the main Apache configuration
+              echo "Include conf/extra/httpd-s3-logging.conf" >> /usr/local/apache2/conf/httpd.conf
+              exec httpd-foreground
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: local-log-storage
+              mountPath: /local-logs
+
+        - name: log-shipper
+          image: busybox:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              while true; do
+                YESTERDAY=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null)
+                if [ -f "/local-logs/access-${YESTERDAY}.log" ] && [ ! -f "/var/log/httpd/client-logs-${YESTERDAY}-${HOSTNAME}.tar.gz" ]; then
+                  cd /local-logs
+                  tar -czf /var/log/httpd/client-logs-${YESTERDAY}-${HOSTNAME}.tar.gz *${YESTERDAY}*.log
+                  cd /
+                fi
+                sleep 3600
+              done
+          volumeMounts:
+            - name: local-log-storage
+              mountPath: /local-logs
+            - name: s3-storage
+              mountPath: /var/log/httpd
+
+      volumes:
+        - name: local-log-storage
+          emptyDir: {}
+        - name: s3-storage
+          persistentVolumeClaim:
+            claimName: s3-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpd-loadbalancer-svc
+  namespace: dexter
+  labels:
+    app: httpd-app
+spec:
+  type: LoadBalancer
+  selector:
+    app: httpd-app
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: 80
