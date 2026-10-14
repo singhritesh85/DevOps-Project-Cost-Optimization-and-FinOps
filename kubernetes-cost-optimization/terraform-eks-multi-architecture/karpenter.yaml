@@ -82,3 +82,11 @@ spec:
         karpenter.sh/discovery: "eks-demo-cluster-dev" # replace with your cluster name
   amiSelectorTerms:
     - alias: al2023@latest # Amazon Linux 2023
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      rootVolume: true
+      ebs:
+        volumeType: gp3
+        encrypted: true
+        volumeSize: 20Gi
+        deleteOnTermination: true 
