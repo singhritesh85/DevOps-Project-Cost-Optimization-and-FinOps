@@ -32,7 +32,7 @@ metadata:
   labels:
     app: httpd-app
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: httpd-app
   ports:
