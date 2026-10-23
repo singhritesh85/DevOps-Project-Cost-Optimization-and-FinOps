@@ -81,3 +81,16 @@ spec:
       requestRedirect:
         scheme: https
         statusCode: 301
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: httpd-target-config
+  namespace: dexter
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: httpd-svc
+  defaultConfiguration:
+    targetType: ip
