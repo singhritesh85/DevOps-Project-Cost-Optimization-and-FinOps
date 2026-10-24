@@ -1,4 +1,4 @@
-#S3 Bucket to capture ALB access logs
+#Create AWS S3 Bucket which may be mounted to pod
 resource "aws_s3_bucket" "s3_bucket" {
   count = var.s3_bucket_exists == false ? 1 : 0
   bucket = var.access_log_bucket
