@@ -8,7 +8,7 @@ spec:
     apiVersion: "apps/v1"
     kind: "Deployment"
     name: "bankapp-folo"
-  minReplicaCount: 3
+  minReplicaCount: 1
   maxReplicaCount: 5
   triggers:
   - type: cpu
@@ -29,7 +29,7 @@ spec:
     service: bankapp-folo
     port: 80
   replicas:
-    min: 3
+    min: 1
     max: 5
   targetPendingRequests: 100
 ---
