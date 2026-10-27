@@ -1,0 +1,29 @@
+pipeline{
+    agent{
+         node{
+             label "Slave-1"
+             customWorkspace "/home/k8s-management/keda-vpa"
+         }
+    }
+    environment{
+        JAVA_HOME="/usr/lib/jvm/java-25-amazon-corretto.x86_64"
+        PATH="$PATH:$JAVA_HOME/bin:/opt/apache-maven/bin:/opt/node-v16.0.0/bin:/usr/local/bin"
+        ARGOCD_PASSWORD=credentials('argocd_password')
+    }
+    stages{
+        stage("Install-KEDA-Helm"){
+            steps{
+                sh 'helm repo add kedacore https://kedacore.github.io/charts'
+                sh 'helm repo update'
+                sh 'helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version v2.21.0'
+            }
+        }
+        stage("Install-VPA-ArgoCD"){
+            steps{
+                // Deploy Vertical Pod Autoscaler (VPA) via ArgoCD using the official Kubernetes autoscaler repo
+                sh 'argocd app create vpa --project default --repo https://github.com/kubernetes/autoscaler.git --path vertical-pod-autoscaler/deploy --revision master --dest-namespace kube-system --dest-server https://kubernetes.default.svc --upsert'
+                sh 'argocd app sync vpa'
+            }
+        }
+    }
+}
