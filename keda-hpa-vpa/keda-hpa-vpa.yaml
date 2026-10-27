@@ -1,4 +1,4 @@
-apiVersion: keda.sh/v1alpha1
+apiVersion: keda.sh/v1
 kind: ScaledObject
 metadata:
   name: bankapp-scaler
@@ -18,7 +18,7 @@ spec:
     metadata:
       value: "50"       
 ---
-apiVersion: http.keda.sh/v1alpha1
+apiVersion: http.keda.sh/v1
 kind: HTTPScaledObject
 metadata:
   name: bankapp-http
