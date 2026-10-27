@@ -16,6 +16,10 @@ pipeline{
                 sh 'helm repo add kedacore https://kedacore.github.io/charts'
                 sh 'helm repo update'
                 sh 'helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version v2.21.0'
+                // Install KEDA HTTP Add-on using the correct chart name (keda-add-ons-http)
+                sh 'helm upgrade --install keda-http-addon kedacore/keda-add-ons-http --namespace keda --create-namespace --version v0.16.0'
+                // Wait for CRDs to fully register
+                sh 'sleep 15'
             }
         }
         stage("Install-VPA-Script"){
@@ -32,6 +36,25 @@ pipeline{
                 }
                 // Execute the official setup script which handles cert generation, secrets, and deployment
                 sh 'cd autoscaler/vertical-pod-autoscaler && ./hack/vpa-up.sh'
+                // Enable the InPlace feature-gate on VPA components so updateMode: InPlace is permitted
+                sh '''
+                    # Patch admission-controller
+                    kubectl get deployment vpa-admission-controller -n kube-system -o jsonpath='{range .spec.template.spec.containers[0].args[*]}{@}{"\n"}{end}' | grep -q "InPlace=true" || \
+                    kubectl patch deployment vpa-admission-controller -n kube-system --type='json' -p='[
+                      {"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=InPlace=true"}
+                    ]'
+
+                    # Patch updater (safely handles missing args array if needed)
+                    if kubectl get deployment vpa-updater -n kube-system -o jsonpath='{.spec.template.spec.containers[0].args}' | grep -q "args"; then
+                        kubectl patch deployment vpa-updater -n kube-system --type='json' -p='[
+                          {"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--feature-gates=InPlace=true"}
+                        ]'
+                    else
+                        kubectl patch deployment vpa-updater -n kube-system --type='json' -p='[
+                          {"op": "add", "path": "/spec/template/spec/containers/0/args", "value": ["--feature-gates=InPlace=true"]}
+                        ]'
+                    fi
+                '''
             }
         }
     }
