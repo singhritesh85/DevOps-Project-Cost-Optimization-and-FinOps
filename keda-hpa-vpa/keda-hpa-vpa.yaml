@@ -1,0 +1,107 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: bankapp-scaler
+  namespace: bankapp
+spec:
+  scaleTargetRef:
+    apiVersion: "apps/v1"
+    kind: "Deployment"
+    name: "bankapp-folo"     
+  minReplicaCount: 3         
+  maxReplicaCount: 5         
+  cooldownPeriod: 300        
+  pollingInterval: 15        
+  triggers:
+  - type: cpu
+    metricType: Utilization  
+    metadata:
+      value: "50"       
+---
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: bankapp-http
+  namespace: bankapp
+spec:
+  scaleTargetRef:
+    deployment: bankapp-folo
+    service: bankapp-folo
+    port: 80
+  hosts:
+    - bankapp.singhritesh85.com
+  replicas:
+    min: 3
+    max: 5
+  metricType: Utilization 
+  triggers:
+    - type: requestRate
+      metadata:
+        window: 1s
+        value: "100"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: bankapp-vpa
+  namespace: bankapp
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: Deployment
+    name: "bankapp-folo"
+  updatePolicy:
+    updateMode: "Off"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "bankapp-folo"  # Adjust container name if different in your deployment spec
+        minAllowed:
+          cpu: "250m"
+          memory: "512Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "8Gi"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: mysql-primary-vpa
+  namespace: mysql
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: StatefulSet
+    name: "mysql-primary"
+  updatePolicy:
+    updateMode: "InPlace"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "mysql"
+        minAllowed:
+          cpu: "250m"
+          memory: "512Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "8Gi"
+---
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: mysql-secondary-vpa
+  namespace: mysql
+spec:
+  targetRef:
+    apiVersion: "apps/v1"
+    kind: StatefulSet
+    name: "mysql-secondary"
+  updatePolicy:
+    updateMode: "InPlace"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: "mysql"
+        minAllowed:
+          cpu: "250m"
+          memory: "512Mi"
+        maxAllowed:
+          cpu: "4"
+          memory: "8Gi"
