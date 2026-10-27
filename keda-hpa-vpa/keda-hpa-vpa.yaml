@@ -75,7 +75,7 @@ spec:
     kind: StatefulSet
     name: "mysql-primary"
   updatePolicy:
-    updateMode: "InPlace"   # Safely applies recommendations via graceful pod recreation
+    updateMode: "InPlace"  
   resourcePolicy:
     containerPolicies:
       - containerName: "mysql"
