@@ -54,7 +54,7 @@ spec:
     updateMode: "Off"
   resourcePolicy:
     containerPolicies:
-      - containerName: "bankapp-folo"  # Adjust container name if different in your deployment spec
+      - containerName: "bankapp-folo"
         minAllowed:
           cpu: "250m"
           memory: "512Mi"
