@@ -24,23 +24,23 @@ spec:
     metricType: Utilization
     metadata:
       value: "50"
----
-apiVersion: http.keda.sh/v1alpha1
-kind: HTTPScaledObject
-metadata:
-  name: bankapp-http
-  namespace: bankapp
-spec:
-  hosts:
-    - bankapp.singhritesh85.com
-  scaleTargetRef:
-    name: bankapp-folo
-    service: bankapp-folo
-    port: 80
-  replicas:
-    min: 1
-    max: 5
-  targetPendingRequests: 100
+#---
+#apiVersion: http.keda.sh/v1alpha1
+#kind: HTTPScaledObject
+#metadata:
+#  name: bankapp-http
+#  namespace: bankapp
+#spec:
+#  hosts:
+#    - bankapp.singhritesh85.com
+#  scaleTargetRef:
+#    name: bankapp-folo
+#    service: bankapp-folo
+#    port: 80
+#  replicas:
+#    min: 1
+#    max: 5
+#  targetPendingRequests: 100
 ---
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
