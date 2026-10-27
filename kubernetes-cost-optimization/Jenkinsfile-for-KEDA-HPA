@@ -18,11 +18,20 @@ pipeline{
                 sh 'helm upgrade --install keda kedacore/keda --namespace keda --create-namespace --version v2.21.0'
             }
         }
-        stage("Install-VPA-ArgoCD"){
+        stage("Install-VPA-Script"){
             steps{
-                // Deploy Vertical Pod Autoscaler (VPA) via ArgoCD using the official Kubernetes autoscaler repo
-                sh 'argocd app create vpa --project default --repo https://github.com/kubernetes/autoscaler.git --path vertical-pod-autoscaler/deploy --revision master --dest-namespace kube-system --dest-server https://kubernetes.default.svc --upsert'
-                sh 'argocd app sync vpa'
+                // Clone or update the kubernetes/autoscaler repository and run vpa-up.sh
+                script {
+                    def vpaDir = "${env.WORKSPACE}/autoscaler"
+                    sh """
+                        if [ -d "${vpaDir}" ]; then
+                            rm -rf "${vpaDir}"
+                        fi
+                        git clone https://github.com/kubernetes/autoscaler.git "${vpaDir}"
+                    """
+                }
+                // Execute the official setup script which handles cert generation, secrets, and deployment
+                sh 'cd autoscaler/vertical-pod-autoscaler && ./hack/vpa-up.sh'
             }
         }
     }
