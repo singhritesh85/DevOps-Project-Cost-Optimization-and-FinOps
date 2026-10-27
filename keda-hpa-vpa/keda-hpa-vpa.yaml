@@ -1,4 +1,4 @@
-apiVersion: keda.sh/v1
+apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
   name: bankapp-scaler
@@ -7,16 +7,14 @@ spec:
   scaleTargetRef:
     apiVersion: "apps/v1"
     kind: "Deployment"
-    name: "bankapp-folo"     
-  minReplicaCount: 3         
-  maxReplicaCount: 5         
-  cooldownPeriod: 300        
-  pollingInterval: 15        
+    name: "bankapp-folo"
+  minReplicaCount: 3
+  maxReplicaCount: 5
   triggers:
   - type: cpu
-    metricType: Utilization  
+    metricType: Utilization
     metadata:
-      value: "50"       
+      value: "50"
 ---
 apiVersion: http.keda.sh/v1alpha1
 kind: HTTPScaledObject
@@ -24,12 +22,12 @@ metadata:
   name: bankapp-http
   namespace: bankapp
 spec:
-  scaleTargetRef:
-    deployment: bankapp-folo
-    service: bankapp-folo
-    port: 80
   hosts:
     - bankapp.singhritesh85.com
+  scaleTargetRef:
+    name: bankapp-folo
+    service: bankapp-folo
+    port: 80
   replicas:
     min: 3
     max: 5
@@ -68,7 +66,7 @@ spec:
     kind: StatefulSet
     name: "mysql-primary"
   updatePolicy:
-    updateMode: "InPlace"
+    updateMode: "InPlace"   # Safely applies recommendations via graceful pod recreation
   resourcePolicy:
     containerPolicies:
       - containerName: "mysql"
