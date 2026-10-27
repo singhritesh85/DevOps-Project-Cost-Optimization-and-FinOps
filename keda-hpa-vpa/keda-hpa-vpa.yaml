@@ -1,46 +1,46 @@
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: bankapp-scaler
-  namespace: bankapp
-spec:
-  scaleTargetRef:
-    apiVersion: "apps/v1"
-    kind: "Deployment"
-    name: "bankapp-folo"
-  minReplicaCount: 1
-  maxReplicaCount: 5
-  advanced:
-    horizontalPodAutoscalerConfig:
-      behavior:
-        scaleDown:
-          stabilizationWindowSeconds: 300
-          policies:
-          - type: Percent
-            value: 100
-            periodSeconds: 15
-  triggers:
-  - type: cpu
-    metricType: Utilization
-    metadata:
-      value: "50"
-#---
-#apiVersion: http.keda.sh/v1alpha1
-#kind: HTTPScaledObject
+#apiVersion: keda.sh/v1alpha1
+#kind: ScaledObject
 #metadata:
-#  name: bankapp-http
+#  name: bankapp-scaler
 #  namespace: bankapp
 #spec:
-#  hosts:
-#    - bankapp.singhritesh85.com
 #  scaleTargetRef:
-#    name: bankapp-folo
-#    service: bankapp-folo
-#    port: 80
-#  replicas:
-#    min: 1
-#    max: 5
-#  targetPendingRequests: 100
+#    apiVersion: "apps/v1"
+#    kind: "Deployment"
+#    name: "bankapp-folo"
+#  minReplicaCount: 1
+#  maxReplicaCount: 5
+#  advanced:
+#    horizontalPodAutoscalerConfig:
+#      behavior:
+#        scaleDown:
+#          stabilizationWindowSeconds: 300
+#          policies:
+#          - type: Percent
+#            value: 100
+#            periodSeconds: 15
+#  triggers:
+#  - type: cpu
+#    metricType: Utilization
+#    metadata:
+#      value: "50"
+---
+apiVersion: http.keda.sh/v1alpha1
+kind: HTTPScaledObject
+metadata:
+  name: bankapp-http
+  namespace: bankapp
+spec:
+  hosts:
+    - bankapp.singhritesh85.com
+  scaleTargetRef:
+    name: bankapp-folo
+    service: bankapp-folo
+    port: 80
+  replicas:
+    min: 1
+    max: 5
+  targetPendingRequests: 100
 ---
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
