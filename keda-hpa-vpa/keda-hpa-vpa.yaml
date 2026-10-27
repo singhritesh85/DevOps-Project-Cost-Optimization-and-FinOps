@@ -18,7 +18,7 @@ spec:
     metadata:
       value: "50"       
 ---
-apiVersion: http.keda.sh/v1
+apiVersion: http.keda.sh/v1alpha1
 kind: HTTPScaledObject
 metadata:
   name: bankapp-http
@@ -33,12 +33,7 @@ spec:
   replicas:
     min: 3
     max: 5
-  metricType: Utilization 
-  triggers:
-    - type: requestRate
-      metadata:
-        window: 1s
-        value: "100"
+  targetPendingRequests: 100
 ---
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
