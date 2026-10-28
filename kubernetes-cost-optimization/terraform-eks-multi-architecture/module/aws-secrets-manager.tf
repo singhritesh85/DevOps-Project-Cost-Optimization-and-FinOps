@@ -10,12 +10,18 @@ resource "aws_secretsmanager_secret" "mysql_credentials" {
   description = "Root credentials for MySQL deployed via ArgoCD"
 }
 
-# Store the password and database name inside the Secret
+# Generate a secure replication password for MySQL
+resource "random_password" "mysql_replication_password" {
+  length  = 20
+  special = false ### Adjust based on MySQL special character constraints if needed
+}
+
+# Store the password inside the Secret
 resource "aws_secretsmanager_secret_version" "mysql_credentials_val" {
   secret_id = aws_secretsmanager_secret.mysql_credentials.id
   secret_string = jsonencode({
-    mysql-root-password = random_password.mysql_root_password.result
-    mysql-database      = "dexter-db"
+    mysql-root-password        = random_password.mysql_root_password.result
+    mysql-replication-password = random_password.mysql_replication_password.result
   })
 }
 
