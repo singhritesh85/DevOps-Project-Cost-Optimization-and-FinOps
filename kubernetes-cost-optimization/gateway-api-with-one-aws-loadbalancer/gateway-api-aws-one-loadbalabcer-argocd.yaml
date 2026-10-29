@@ -1,0 +1,52 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-route
+  namespace: argocd
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: shared-cluster-gateway
+    namespace: networking   # Point to where the shared Gateway lives
+    sectionName: https
+  hostnames:
+  - "argocd.singhritesh85.com"
+  rules:
+  - backendRefs:
+    - name: argocd-server
+      port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: argocd-http-to-https-redirect
+  namespace: argocd
+spec:
+  parentRefs:
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: shared-cluster-gateway
+    namespace: networking
+    sectionName: http
+  hostnames:
+  - "argocd.singhritesh85.com"
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+---
+apiVersion: gateway.k8s.aws/v1
+kind: TargetGroupConfiguration
+metadata:
+  name: argocd-target-config
+  namespace: argocd
+spec:
+  targetReference:
+    group: ""
+    kind: Service
+    name: argocd-server
+  defaultConfiguration:
+    targetType: ip
