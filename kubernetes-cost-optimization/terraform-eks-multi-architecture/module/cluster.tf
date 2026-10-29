@@ -1014,7 +1014,8 @@ resource "aws_iam_policy" "lbc_policy" {
           "elasticloadbalancing:SetIpAddressType",
           "elasticloadbalancing:AddTags",
           "elasticloadbalancing:RemoveTags",
-          "elasticloadbalancing:DescribeTags"
+          "elasticloadbalancing:DescribeTags",
+          "elasticloadbalancing:SetRulePriorities"
         ]
         Resource = "*"
       },
