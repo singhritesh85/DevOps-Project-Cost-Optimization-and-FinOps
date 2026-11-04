@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-statefulapp2
+  namespace: mederma
+spec:
+  serviceName: "my-app-service2"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: my-app2
+  template:
+    metadata:
+      labels:
+        app: my-app2
+    spec:
+      containers:
+      - name: app-container
+        image: mcr.microsoft.com/oss/nginx/nginx:1.21.6
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "managed-csi"
+      resources:
+        requests:
+          storage: 1Gi
