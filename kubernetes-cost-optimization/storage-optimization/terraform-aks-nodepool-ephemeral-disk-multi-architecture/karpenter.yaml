@@ -26,7 +26,7 @@ spec:
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: systempool-ondemand-cobalt
+  name: system-surge-karpenter     ###systempool-ondemand-cobalt
 spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
