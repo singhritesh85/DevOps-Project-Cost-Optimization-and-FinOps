@@ -1,4 +1,4 @@
-# 1. ARM64 NODE CLASS (For Cobalt System and On-Demand User Pools)
+# 1. ARM64 NODE CLASS (For System and On-Demand User Pools)
 apiVersion: karpenter.azure.com/v1beta1
 kind: AKSNodeClass
 metadata:
@@ -22,38 +22,41 @@ spec:
   security:
     encryptionAtHost: true
 ---
-# 3. THE SYSTEM SURGE POOL - ON-DEMAND COBALT POOL (ARM64)
+# 3. SYSTEMPOOL AGENT - ON-DEMAND COBALT POOL (ARM64)
 apiVersion: karpenter.sh/v1
 kind: NodePool
 metadata:
-  name: system-surge-karpenter
+  name: systempool-ondemand-cobalt
 spec:
   disruption:
     consolidationPolicy: WhenEmptyOrUnderutilized
     consolidateAfter: 30s
   template:
+    metadata:
+      labels:
+        kubernetes.azure.com/mode: system
     spec:
       nodeClassRef:
         group: karpenter.azure.com
         kind: AKSNodeClass
         name: arm64-infra-class
-      startupTaints:
+      taints:
         - key: CriticalAddonsOnly
           value: "true"
           effect: NoSchedule
       requirements:
-        - key: kubernetes.io/arch
-          operator: In
-          values: ["arm64"]
         - key: kubernetes.io/os
           operator: In
           values: ["linux"]
+        - key: kubernetes.io/arch
+          operator: In
+          values: ["arm64"]
         - key: karpenter.sh/capacity-type
           operator: In
           values: ["on-demand"]
         - key: karpenter.azure.com/sku-name
           operator: In
-          values: ["Standard_E2pds_v6", "Standard_E4pds_v6", "Standard_E8pds_v6"]
+          values: ["Standard_D4ps_v6", "Standard_D8ps_v6"]
 ---
 # 4. USERPOOL AGENT - ON-DEMAND COBALT POOL (ARM64)
 apiVersion: karpenter.sh/v1
@@ -82,7 +85,7 @@ spec:
           values: ["on-demand"]
         - key: karpenter.azure.com/sku-name
           operator: In
-          values: ["Standard_E2pds_v6", "Standard_E4pds_v6", "Standard_E8pds_v6"]
+          values: ["Standard_D4ps_v6", "Standard_D2ps_v6", "Standard_D8ps_v6"]
 ---
 # 5. USERPOOL AGENT - SPOT AMD64 POOL (AMD64)
 apiVersion: karpenter.sh/v1
