@@ -56,7 +56,7 @@ spec:
           values: ["on-demand"]
         - key: karpenter.azure.com/sku-name
           operator: In
-          values: ["Standard_D4ps_v6", "Standard_D8ps_v6"]
+          values: ["Standard_E2pds_v6", "Standard_E4pds_v6", "Standard_E8pds_v6"]
 ---
 # 4. USERPOOL AGENT - ON-DEMAND COBALT POOL (ARM64)
 apiVersion: karpenter.sh/v1
@@ -85,7 +85,7 @@ spec:
           values: ["on-demand"]
         - key: karpenter.azure.com/sku-name
           operator: In
-          values: ["Standard_D4ps_v6", "Standard_D2ps_v6", "Standard_D8ps_v6"]
+          values: ["Standard_E2pds_v6", "Standard_E4pds_v6", "Standard_E8pds_v6"]
 ---
 # 5. USERPOOL AGENT - SPOT AMD64 POOL (AMD64)
 apiVersion: karpenter.sh/v1
