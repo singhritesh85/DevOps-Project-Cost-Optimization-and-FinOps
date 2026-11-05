@@ -1,0 +1,21 @@
+{
+  "rules": [
+    {
+      "enabled": true,
+      "name": "apache-log-creation-lifecycle-rule",
+      "type": "Lifecycle",
+      "definition": {
+        "filters": {
+          "blobTypes": [ "blockBlob" ]
+        },
+        "actions": {
+          "baseBlob": {
+            "tierToCool": { "daysAfterCreationGreaterThan": 30 },
+            "tierToCold": { "daysAfterCreationGreaterThan": 90 },
+            "delete": { "daysAfterCreationGreaterThan": 365 }
+          }
+        }
+      }
+    }
+  ]
+}
