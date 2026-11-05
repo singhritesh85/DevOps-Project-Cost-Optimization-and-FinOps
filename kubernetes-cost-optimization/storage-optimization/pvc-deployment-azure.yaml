@@ -19,7 +19,7 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: httpd-s3-logging-deployment
+  name: httpd-azure-blob-logging-deployment
   namespace: dexter
   labels:
     app: httpd-app
@@ -40,11 +40,11 @@ spec:
           args:
             - |
               mkdir -p /local-logs
-              cat << 'EOF' > /usr/local/apache2/conf/extra/httpd-s3-logging.conf
+              cat << 'EOF' > /usr/local/apache2/conf/extra/httpd-azure-blob-logging.conf
               CustomLog "|/usr/local/apache2/bin/rotatelogs -l /local-logs/access-%Y-%m-%d.log 86400" combined
               ErrorLog "|/usr/local/apache2/bin/rotatelogs -l /local-logs/error-%Y-%m-%d.log 86400"
               EOF
-              echo "Include conf/extra/httpd-s3-logging.conf" >> /usr/local/apache2/conf/httpd.conf
+              echo "Include conf/extra/httpd-azure-blob-logging.conf" >> /usr/local/apache2/conf/httpd.conf
               exec httpd-foreground
           ports:
             - containerPort: 80
