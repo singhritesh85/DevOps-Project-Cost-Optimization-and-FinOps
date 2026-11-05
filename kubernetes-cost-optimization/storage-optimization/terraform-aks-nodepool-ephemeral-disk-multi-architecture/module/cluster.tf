@@ -153,8 +153,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
 ### Storage Profile Block
   storage_profile {
     blob_driver_enabled = true                    ### Provide the boolean to enable or disable the Blob CSI Driver. Default value is false.
-    disk_driver_enabled = true                    ### Provide the boolean to enable or disable the Disk CSI Driver. Default value is true.
-    disk_driver_version = "v2"                    ### Disk driver version v2 has been available to general availability. Default value is v1.   
+    disk_driver_enabled = true                    ### Provide the boolean to enable or disable the Disk CSI Driver. Default value is true. 
     file_driver_enabled = true                    ### Provide the boolean to enable or disable the File CSI Driver. Default value is true.
     snapshot_controller_enabled = true            ### Provide the boolean to enable or disable the Snapshot Controller. Default value is true.
   }
