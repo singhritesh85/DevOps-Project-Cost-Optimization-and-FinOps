@@ -84,10 +84,10 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
   private_cluster_enabled = true
   azure_policy_enabled = true
   private_dns_zone_id = azurerm_private_dns_zone.private_dns_zone.id
-  
+
   default_node_pool {
     name                 = "systempool"
-    vm_size              = "Standard_E2pds_v6" ###"Standard_D4ps_v6" ###"Standard_B4ms" ###"Standard_B2ms" ###"Standard_B2s" ###"Standard_DS3_v2" 
+    vm_size              = "Standard_E2pds_v6" ###"Standard_D4ps_v6" ###"Standard_B4ms" ###"Standard_B2ms" ###"Standard_B2s" ###"Standard_DS3_v2"
     orchestrator_version = var.kubernetes_version_aks
 #    zones                = [1, 2, 3]
 #    enable_node_public_ip = true             ###  Will be used in Public AKS Cluster.
@@ -99,7 +99,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     max_pods             = 110
     os_disk_type         = "Ephemeral" ###"Managed"
     os_disk_size_gb      = 30
-    kubelet_disk_type    = "OS"        ### Kubernetes writes its internal runtime data on OS Ephemeral Disk.   
+    kubelet_disk_type    = "OS"        ### Kubernetes writes its internal runtime data on OS Ephemeral Disk.
     os_sku               = "Ubuntu"    ### You can select between Ubuntu and AzureLinux.
     type                 = "VirtualMachineScaleSets"
     vnet_subnet_id       = azurerm_subnet.vnet1_subnet.id
@@ -110,14 +110,14 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
       "nodepool-type"    = "system"
       "environment"      = var.env
       "nodepoolos"       = "linux"
-#      "app"              = "system-apps" 
-    } 
+#      "app"              = "system-apps"
+    }
     tags = {
       "nodepool-type"    = "system"
       "environment"      = var.env
       "nodepoolos"       = "linux"
-#      "app"              = "system-apps" 
-    } 
+#      "app"              = "system-apps"
+    }
   }
 
   automatic_upgrade_channel = "stable"
@@ -153,7 +153,7 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
 ### Storage Profile Block
   storage_profile {
     blob_driver_enabled = true                    ### Provide the boolean to enable or disable the Blob CSI Driver. Default value is false.
-    disk_driver_enabled = true                    ### Provide the boolean to enable or disable the Disk CSI Driver. Default value is true. 
+    disk_driver_enabled = true                    ### Provide the boolean to enable or disable the Disk CSI Driver. Default value is true.
     file_driver_enabled = true                    ### Provide the boolean to enable or disable the File CSI Driver. Default value is true.
     snapshot_controller_enabled = true            ### Provide the boolean to enable or disable the Snapshot Controller. Default value is true.
   }
@@ -184,14 +184,14 @@ resource "azurerm_kubernetes_cluster" "aks_cluster" {
     default_node_pools          = "None" # Automatically creates default & system-surge Karpenter NodePools
   }
 
-# Enable KEDA and VPA 
+# Enable KEDA and VPA
   workload_autoscaler_profile {
     keda_enabled                    = true
     vertical_pod_autoscaler_enabled = true
   }
 
   monitor_metrics {
-  
+
   }
 
   oms_agent {
@@ -220,7 +220,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "autoscale_node_pool" {
 #  min_count            = 1
   max_pods             = 110
   os_disk_type         = "Ephemeral" ###"Managed"
-  os_disk_size_gb      = 30  
+  os_disk_size_gb      = 30
   kubelet_disk_type    = "OS"        ### Kubernetes writes its internal runtime data on OS Ephemeral Disk.
   os_type              = "Linux"
   os_sku               = "Ubuntu"    ### You can select between Ubuntu and AzureLinux.
@@ -249,7 +249,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "autoscale_node_pool" {
     "nodepoolos"       = "linux"
 #   "app"              = "system-apps"
   }
-} 
+}
 
 ##########################################################################################################################################
 
@@ -281,14 +281,14 @@ resource "azurerm_monitor_metric_alert" "alert_rule1" {
     operator         = "GreaterThan"
     threshold        = 80
   }
-   
+
   action {
     action_group_id = azurerm_monitor_action_group.action_group.id
   }
 }
 
 #######################################################################################################
-# Create Kubeconfig file 
+# Create Kubeconfig file
 #######################################################################################################
 
 resource "null_resource" "kubectl_aks" {
@@ -310,4 +310,3 @@ resource "null_resource" "kubectl_aks" {
 #  scope                = azurerm_subnet.aks_subnet.id
 #  depends_on = [azurerm_monitor_metric_alert.alert_rule1, azurerm_monitor_metric_alert.alert_rule2]
 #}
-
