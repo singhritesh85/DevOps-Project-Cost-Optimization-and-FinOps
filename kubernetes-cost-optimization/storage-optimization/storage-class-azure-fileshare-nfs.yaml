@@ -6,5 +6,5 @@ provisioner: file.csi.azure.com
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 parameters:
-  skuName: Premium
+  skuName: Premium_LRS
   protocol: nfs
