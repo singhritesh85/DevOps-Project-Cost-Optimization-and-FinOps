@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: azurefile-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile-nfs-sc
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azurefile-app-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: azurefile-app
+  template:
+    metadata:
+      labels:
+        app: azurefile-app
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.19.5
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: shared-storage
+        persistentVolumeClaim:
+                claimName: azurefile-pvc
